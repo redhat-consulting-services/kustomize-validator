@@ -21,10 +21,12 @@ var (
 var RootCmd = &cobra.Command{
 	Use:  "kustomize-validator",
 	Long: "A tool to validate Kustomization files",
-	Run: func(cmd *cobra.Command, args []string) {
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			fmt.Println("No arguments provided")
-			return
+			return nil
 		}
 
 		fmt.Println("Validating Kustomization files", args[0])
@@ -67,7 +69,9 @@ var RootCmd = &cobra.Command{
 
 				// if no error, validate content
 				rsrcs := validate.ValidateContent(resources, *checkArbitrary)
-				msg.Err = rsrcs.Error()
+				if msg.Err == nil {
+					msg.Err = rsrcs.Error()
+				}
 				if msg.Err != nil {
 					isError = true
 				}
@@ -122,6 +126,11 @@ var RootCmd = &cobra.Command{
 		fmt.Println("Success: ", validate.ColorF(validate.ColorGreen, "%d", successCounter))
 		fmt.Println("Error: ", validate.ColorF(validate.ColorRed, "%d", failureCounter))
 		fmt.Println("Failed in %: ", validate.ColorF(validate.ColorRed, "%.2f%%", float64(failureCounter)/float64(totalCounter)*100))
+
+		if failureCounter > 0 {
+			return fmt.Errorf("validation failed")
+		}
+		return nil
 	},
 }
 
